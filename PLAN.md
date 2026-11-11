@@ -35,6 +35,16 @@ Store stable source IDs and licensed metadata locally; no accounts or backend.
    Android device checks and release APK build/install.
 
 ## Risks and validation
+Phase 2 implementation: Met `v1.1/search` with explicit paging (the old search
+endpoint retired 1 October 2026), `v1/objects/{id}` and `v1/departments` are wired
+to Discover, Explore and details. Public-domain HTTPS images only; small batches,
+timeouts, bounded retries and obsolete-search cancellation. Daily selection IDs
+persist locally. Source links, copy-link, zoom and additional images are available.
+Host smoke check: object 10065 (Repose), public-domain flag and thumbnail HTTP 200
+image/jpeg verified. Android image rendering remains a device acceptance check.
+Era groupings, cross-museum filters, recent history, bookmarks and disk image
+caching remain in their later phases; subject links are explicitly keyword searches.
+
 Museum availability, rate limits, missing metadata/images and incompatible media
 are normal states: bounded retries, cancellation, small request batches and clear
 empty/error feedback. Never fabricate artwork, provenance, biographies or media.

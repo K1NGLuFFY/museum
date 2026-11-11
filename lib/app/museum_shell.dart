@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../core/theme/museum_theme.dart';
+import '../features/artworks/artwork.dart';
 import '../features/collections/collections_screen.dart';
 import '../features/discover/discover_screen.dart';
 import '../features/explore/explore_screen.dart';
@@ -9,8 +10,13 @@ import '../features/saved/saved_screen.dart';
 import '../features/settings/settings_controller.dart';
 
 class MuseumShell extends StatefulWidget {
-  const MuseumShell({super.key, required this.settings});
+  const MuseumShell({
+    super.key,
+    required this.settings,
+    required this.repository,
+  });
   final SettingsController settings;
+  final ArtworkRepository repository;
 
   @override
   State<MuseumShell> createState() => _MuseumShellState();
@@ -98,9 +104,10 @@ class _MuseumShellState extends State<MuseumShell> {
               builder: (_) => switch (index) {
                 0 => DiscoverScreen(
                   settings: widget.settings,
+                  repository: widget.repository,
                   onExplore: _explore,
                 ),
-                1 => const ExploreScreen(),
+                1 => ExploreScreen(repository: widget.repository),
                 2 => CollectionsScreen(onExplore: _explore),
                 3 => const MediaScreen(),
                 _ => SavedScreen(onExplore: _explore),
