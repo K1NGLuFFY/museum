@@ -23,6 +23,8 @@ class Artwork {
     this.fullImageUrl,
     this.additionalImages = const [],
     this.isPublicDomain = false,
+    this.isCached = false,
+    this.cachedAt,
   });
 
   final String source, sourceId, title, museum, license;
@@ -34,6 +36,8 @@ class Artwork {
   final Uri? thumbnailUrl, fullImageUrl;
   final List<Uri> additionalImages;
   final bool isPublicDomain;
+  final bool isCached;
+  final DateTime? cachedAt;
   String get id => '$source:$sourceId';
   bool get hasImage => isPublicDomain && fullImageUrl != null;
 }
@@ -105,6 +109,8 @@ class ArtworkPage {
     this.nextCursor,
     this.warnings = const [],
     this.limited = false,
+    this.isCached = false,
+    this.cachedAt,
   });
   final List<Artwork> artworks;
 
@@ -115,6 +121,8 @@ class ArtworkPage {
   final ArtworkCursor? nextCursor;
   final List<SourceWarning> warnings;
   final bool limited;
+  final bool isCached;
+  final DateTime? cachedAt;
 }
 
 abstract interface class ArtworkSource {

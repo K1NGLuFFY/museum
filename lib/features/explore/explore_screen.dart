@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import '../../core/widgets/empty_gallery.dart';
 import '../artworks/artwork.dart';
 import '../artworks/artwork_widgets.dart';
+import '../library/library_scope.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({
@@ -35,6 +36,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   MuseumSource? _source;
   bool _titleOnly = false, _limited = false;
   List<SourceWarning> _warnings = [];
+  bool _cached = false;
 
   @override
   void initState() {
@@ -112,8 +114,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _warnings = page.warnings;
         _limited = _limited || page.limited;
         _total = page.total;
+        _cached = page.isCached;
         _loading = false;
       });
+      if (!more) {
+        final library = LibraryScope.maybeOf(context)?.library;
+        if (library != null) {
+          await library.recordSearch(_query.text).catchError((_) {});
+        }
+      }
     } on RequestCancelled {
       /* A newer query owns the state. */
     } catch (error) {
@@ -182,6 +191,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const LibraryStatus(),
                   if (!widget.nested) ...[
                     const Text(
                       'Explore',
@@ -225,6 +235,37 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
+                  if (!_searched &&
+                      (LibraryScope.maybeOf(context)?.library.recentSearches ??
+                              [])
+                          .isNotEmpty) ...[
+                    const Text('Recent searches'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final recent in LibraryScope.maybeOf(
+                          context,
+                        )!.library.recentSearches)
+                          CupertinoButton.tinted(
+                            onPressed: () {
+                              _query.text = recent;
+                              _search();
+                            },
+                            child: Text(recent),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  if (_searched && _cached)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        'Stored results only. These records may be out of date, and the complete museum search requires a connection.',
+                      ),
+                    ),
                   if (!_searched)
                     const EmptyGallery(
                       icon: CupertinoIcons.search,

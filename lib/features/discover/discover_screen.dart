@@ -7,6 +7,7 @@ import '../artworks/artwork_widgets.dart';
 import '../explore/explore_screen.dart';
 import '../settings/settings_controller.dart';
 import '../settings/settings_screen.dart';
+import '../library/library_scope.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({
@@ -27,6 +28,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   List<MuseumDepartment> _departments = [];
   Artwork? _daily;
   bool _loading = true;
+  bool _cached = false;
   String? _error, _dailyError, _departmentsError;
   CancellationToken? _cancellation;
 
@@ -52,6 +54,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       if (!mounted || cancellation.isCancelled) return;
       setState(() {
         _artworks = page.artworks;
+        _cached = page.isCached;
         _loading = false;
       });
       try {
@@ -135,6 +138,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       ),
     ),
     children: [
+      const LibraryStatus(),
+      if (_cached)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 16),
+          child: Text(
+            'Showing a stored museum selection. Reconnect and refresh for current records.',
+          ),
+        ),
       const SectionHeading(
         'A world worth looking at.',
         eyebrow: 'Your daily museum',
@@ -177,7 +188,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         if (_daily != null)
           ArtworkCard(artwork: _daily!)
         else
-          Text(_dailyError ?? 'Choosing today’s discovery…'),
+          Text(
+            _dailyError ??
+                (_cached
+                    ? 'Daily discovery is unavailable in this stored selection.'
+                    : 'Choosing today’s discovery…'),
+          ),
         const SizedBox(height: 24),
       ],
       const SectionHeading('Follow your curiosity'),
@@ -235,6 +251,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         ),
         for (final artwork in _artworks.skip(1).take(3))
           ArtworkCard(artwork: artwork, compact: true),
+      ],
+      if ((LibraryScope.maybeOf(context)?.library.recentViews ?? [])
+          .isNotEmpty) ...[
+        const SizedBox(height: 32),
+        const SectionHeading('Continue exploring', eyebrow: 'Recently viewed'),
+        for (final work in LibraryScope.maybeOf(
+          context,
+        )!.library.recentViews.take(3))
+          ArtworkCard(artwork: work, compact: true),
       ],
     ],
   );

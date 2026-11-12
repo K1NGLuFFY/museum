@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:museum/app/museum_app.dart';
 import 'package:museum/features/artworks/artwork.dart';
 import 'package:museum/features/artworks/artwork_detail_screen.dart';
 import 'package:museum/features/explore/explore_screen.dart';
@@ -67,7 +66,7 @@ void main() {
   ) async {
     final repository = FakeArtworkRepository()
       ..error = const MuseumException('Check your connection.');
-    await tester.pumpWidget(MuseumApp(repository: repository));
+    await tester.pumpWidget(testMuseumApp(repository));
     await tester.pumpAndSettle();
     expect(find.text('The gallery is out of reach'), findsOneWidget);
     repository.error = null;

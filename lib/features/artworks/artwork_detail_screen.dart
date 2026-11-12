@@ -5,10 +5,30 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/widgets/museum_page.dart';
 import 'artwork.dart';
 import 'artwork_widgets.dart';
+import '../library/library_scope.dart';
+import '../collections/collection_actions.dart';
 
-class ArtworkDetailScreen extends StatelessWidget {
+class ArtworkDetailScreen extends StatefulWidget {
   const ArtworkDetailScreen({super.key, required this.artwork});
   final Artwork artwork;
+  @override
+  State<ArtworkDetailScreen> createState() => _ArtworkDetailScreenState();
+}
+
+class _ArtworkDetailScreenState extends State<ArtworkDetailScreen> {
+  Artwork get artwork => widget.artwork;
+  bool _recorded = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final library = LibraryScope.maybeOf(context)?.library;
+    if (!_recorded && library != null) {
+      _recorded = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) library.recordView(artwork).catchError((_) {});
+      });
+    }
+  }
 
   Future<void> _openSource(BuildContext context, {Uri? url}) async {
     try {
@@ -41,6 +61,7 @@ class ArtworkDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scope = LibraryScope.maybeOf(context);
     final metadata = <String, String?>{
       'Artist or maker': artwork.artist,
       'Date': artwork.date,
@@ -62,24 +83,39 @@ class ArtworkDetailScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
+            const LibraryStatus(),
+            if (artwork.isCached)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  'Stored metadata${artwork.cachedAt == null ? '' : ' · saved ${artwork.cachedAt!.toLocal().toString().split(' ').first}'}. Museum records may have changed.',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
             ArtworkImage(
               url: artwork.hasImage ? artwork.fullImageUrl : null,
               label: artwork.title,
               height: 360,
               fullResolution: true,
+              fallbackUrl: artwork.thumbnailUrl,
             ),
             if (images.isNotEmpty)
               CupertinoButton(
-                onPressed: () =>
-                    Navigator.of(context, rootNavigator: true).push(
-                      CupertinoPageRoute<void>(
-                        fullscreenDialog: true,
-                        builder: (_) => ArtworkImageViewer(
-                          title: artwork.title,
-                          images: images,
-                        ),
+                onPressed: () {
+                  final preview =
+                      scope?.network.offline == true &&
+                      artwork.thumbnailUrl != null;
+                  Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute<void>(
+                      fullscreenDialog: true,
+                      builder: (_) => ArtworkImageViewer(
+                        title: artwork.title,
+                        images: preview ? [artwork.thumbnailUrl!] : images,
+                        cachedPreview: preview,
                       ),
                     ),
+                  );
+                },
                 child: Text(
                   images.length > 1
                       ? 'View ${images.length} images · Zoom'
@@ -87,6 +123,33 @@ class ArtworkDetailScreen extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 24),
+            if (scope != null)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  CupertinoButton.filled(
+                    onPressed: scope.library.loading || scope.library.readOnly
+                        ? null
+                        : () => libraryAction(
+                            context,
+                            () => scope.library.toggleSaved(artwork),
+                          ),
+                    child: Text(
+                      scope.library.isSaved(artwork.id)
+                          ? 'Remove bookmark'
+                          : 'Save artwork',
+                    ),
+                  ),
+                  CupertinoButton.tinted(
+                    onPressed: scope.library.loading || scope.library.readOnly
+                        ? null
+                        : () => chooseCollections(context, artwork),
+                    child: const Text('Add to collection'),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 16),
             SectionHeading(artwork.title),
             for (final entry in metadata.entries)
               if (entry.value != null)
@@ -174,9 +237,11 @@ class ArtworkImageViewer extends StatefulWidget {
     super.key,
     required this.title,
     required this.images,
+    this.cachedPreview = false,
   });
   final String title;
   final List<Uri> images;
+  final bool cachedPreview;
   @override
   State<ArtworkImageViewer> createState() => _ArtworkImageViewerState();
 }
@@ -206,14 +271,18 @@ class _ArtworkImageViewerState extends State<ArtworkImageViewer> {
                   url: widget.images[_index],
                   label: widget.title,
                   height: null,
-                  fullResolution: true,
+                  fullResolution: !widget.cachedPreview,
                 ),
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text('Pinch to zoom. Drag to explore.'),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Text(
+              widget.cachedPreview
+                  ? 'Cached preview. Pinch to zoom.'
+                  : 'Pinch to zoom. Drag to explore.',
+            ),
           ),
           if (widget.images.length > 1)
             Row(

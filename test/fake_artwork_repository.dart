@@ -1,4 +1,19 @@
 import 'package:museum/features/artworks/artwork.dart';
+import 'package:museum/app/museum_app.dart';
+import 'package:museum/core/api/network_monitor.dart';
+import 'package:museum/core/storage/library_store.dart';
+import 'package:museum/core/storage/thumbnail_cache.dart';
+import 'package:museum/features/library/library_controller.dart';
+
+MuseumApp testMuseumApp(ArtworkRepository repository) => MuseumApp(
+  repository: repository,
+  library: LibraryController(
+    store: MemoryLibraryStore(),
+    legacyAppearance: () async => null,
+  ),
+  network: FixedNetworkMonitor(),
+  thumbnails: EmptyThumbnailCache(),
+);
 
 class FakeArtworkRepository implements ArtworkRepository {
   final List<ArtworkQuery> queries = [];

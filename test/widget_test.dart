@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:museum/app/museum_app.dart';
 import 'package:museum/core/theme/museum_theme.dart';
 import 'package:museum/features/settings/settings_screen.dart';
 import 'fake_artwork_repository.dart';
@@ -14,7 +13,7 @@ void main() {
   testWidgets('all five tabs work and retain search and media state', (
     tester,
   ) async {
-    await tester.pumpWidget(MuseumApp(repository: FakeArtworkRepository()));
+    await tester.pumpWidget(testMuseumApp(FakeArtworkRepository()));
     expect(find.text('MUSEUM'), findsOneWidget);
 
     await tester.tap(tab('Explore'));
@@ -51,7 +50,7 @@ void main() {
   testWidgets('settings change theme and stay on their tab navigation stack', (
     tester,
   ) async {
-    await tester.pumpWidget(MuseumApp(repository: FakeArtworkRepository()));
+    await tester.pumpWidget(testMuseumApp(FakeArtworkRepository()));
     await tester.tap(find.bySemanticsLabel('Settings'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dark'));
@@ -85,7 +84,7 @@ void main() {
   testWidgets('Android back returns to Discover from another tab', (
     tester,
   ) async {
-    await tester.pumpWidget(MuseumApp(repository: FakeArtworkRepository()));
+    await tester.pumpWidget(testMuseumApp(FakeArtworkRepository()));
     await tester.tap(tab('Saved'));
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
@@ -106,7 +105,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      await tester.pumpWidget(MuseumApp(repository: FakeArtworkRepository()));
+      await tester.pumpWidget(testMuseumApp(FakeArtworkRepository()));
       expect(tester.takeException(), isNull);
       for (final label in ['Explore', 'Collections', 'Media', 'Saved']) {
         await tester.tap(tab(label));

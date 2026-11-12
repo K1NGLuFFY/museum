@@ -56,6 +56,22 @@ and paging passed, but its official IIIF host returned a Cloudflare HTTP 403
 challenge on this connection; live Chicago image validation remains unresolved.
 Optional network checks: `flutter test --dart-define=RUN_LIVE_MUSEUM_TESTS=true test/official_api_smoke_test.dart`.
 
+Phase 4 implementation: an app-private, versioned JSON library stores complete
+source-qualified artwork metadata, bookmarks, named collections, recent views,
+recent searches and appearance/cache preferences. Writes are serialized and
+replace a flushed temporary file; a previous snapshot supports recovery. Corrupt
+records are isolated, while unreadable or newer-version libraries stay read-only.
+An existing appearance preference migrates when present; the daily Met preference
+is preserved. Stored search results and saved details are explicitly marked stale.
+Thumbnail disk caching targets 160 files with 30-day unused-file eviction; downloads
+are limited to two at once, 20 seconds and 8 MB per thumbnail. Settings show sizes,
+disable future thumbnail caching, clear disposable cache and clear history.
+Bookmarks and collection metadata remain available offline; full-resolution images
+and media are not cached for offline use. Device connectivity is advisory, with
+request failures also falling back to stored metadata. Validation: 54 deterministic
+tests passed (two opt-in live tests skipped); analyzer clean; Android debug APK
+built successfully. Native restart/offline behavior still needs device validation.
+
 Museum availability, rate limits, missing metadata/images and incompatible media
 are normal states: bounded retries, cancellation, small request batches and clear
 empty/error feedback. Never fabricate artwork, provenance, biographies or media.
