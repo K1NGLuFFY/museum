@@ -15,9 +15,14 @@ class MuseumHttpClient implements MuseumApiClient {
     http.Client? client,
     this.timeout = const Duration(seconds: 12),
     this.retryDelay = const Duration(milliseconds: 500),
+    this.headers = const {},
+    this.minimumInterval = Duration.zero,
   }) : _client = client ?? http.Client();
   final http.Client _client;
   final Duration timeout, retryDelay;
+  final Map<String, String> headers;
+  final Duration minimumInterval;
+  DateTime? _nextRequestAt;
 
   @override
   Future<Map<String, dynamic>> get(
@@ -26,6 +31,16 @@ class MuseumHttpClient implements MuseumApiClient {
   }) async {
     for (var attempt = 0; attempt < 3; attempt++) {
       cancellation?.check();
+      if (minimumInterval > Duration.zero) {
+        while (_nextRequestAt != null &&
+            _nextRequestAt!.isAfter(DateTime.now())) {
+          await Future<void>.delayed(
+            _nextRequestAt!.difference(DateTime.now()),
+          );
+          cancellation?.check();
+        }
+        _nextRequestAt = DateTime.now().add(minimumInterval);
+      }
       final abort = Completer<void>();
       void cancel() {
         if (!abort.isCompleted) abort.complete();
@@ -38,6 +53,7 @@ class MuseumHttpClient implements MuseumApiClient {
           uri,
           abortTrigger: abort.future,
         )..headers['Accept'] = 'application/json';
+        request.headers.addAll(headers);
         final response = await _client
             .send(request)
             .then(http.Response.fromStream)

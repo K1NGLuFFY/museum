@@ -42,8 +42,19 @@ timeouts, bounded retries and obsolete-search cancellation. Daily selection IDs
 persist locally. Source links, copy-link, zoom and additional images are available.
 Host smoke check: object 10065 (Repose), public-domain flag and thumbnail HTTP 200
 image/jpeg verified. Android image rendering remains a device acceptance check.
-Era groupings, cross-museum filters, recent history, bookmarks and disk image
+Era groupings, recent history, bookmarks and disk image
 caching remain in their later phases; subject links are explicitly keyword searches.
+
+Phase 3 implementation: Chicago and Cleveland adapters, cross-museum search,
+museum/title filters, independent pagination and partial-source error feedback.
+Chicago IIIF URLs use response configuration; image rights and its separate
+CC BY 4.0 description attribution are retained. Cleveland images require the
+CC0 share-license flag and use JPEG web/print variants. Chicago search stops at
+its documented 1,000-result cap and is paced to one request per second.
+Live Cleveland search/paging and Flutter JPEG decoding passed. Chicago search
+and paging passed, but its official IIIF host returned a Cloudflare HTTP 403
+challenge on this connection; live Chicago image validation remains unresolved.
+Optional network checks: `flutter test --dart-define=RUN_LIVE_MUSEUM_TESTS=true test/official_api_smoke_test.dart`.
 
 Museum availability, rate limits, missing metadata/images and incompatible media
 are normal states: bounded retries, cancellation, small request batches and clear

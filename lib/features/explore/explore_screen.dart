@@ -31,11 +31,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _loading = false, _searched = false;
   int? _nextOffset;
   int _total = 0;
+  ArtworkCursor? _nextCursor;
+  MuseumSource? _source;
+  bool _titleOnly = false, _limited = false;
+  List<SourceWarning> _warnings = [];
 
   @override
   void initState() {
     super.initState();
     _query = TextEditingController(text: widget.initialQuery.text);
+    _source = widget.initialQuery.departmentId != null
+        ? MuseumSource.met
+        : widget.initialQuery.source;
+    _titleOnly = widget.initialQuery.titleOnly;
     if (_query.text.isNotEmpty || widget.initialQuery.departmentId != null) {
       _search();
     }
@@ -50,6 +58,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _artworks.clear();
       _searched = false;
       _nextOffset = null;
+      _nextCursor = null;
+      _warnings = [];
     });
     _debounce = Timer(const Duration(milliseconds: 400), _search);
   }
@@ -76,6 +86,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       if (!more) {
         _artworks.clear();
         _nextOffset = null;
+        _nextCursor = null;
+        _warnings = [];
+        _limited = false;
       }
     });
     try {
@@ -83,6 +96,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ArtworkQuery(
           text: _query.text,
           departmentId: widget.initialQuery.departmentId,
+          source: _source,
+          titleOnly: _titleOnly,
+          cursor: more ? _nextCursor : null,
         ),
         offset: offset,
         cancellation: cancellation,
@@ -92,6 +108,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         final ids = _artworks.map((artwork) => artwork.id).toSet();
         _artworks.addAll(page.artworks.where((artwork) => ids.add(artwork.id)));
         _nextOffset = page.nextOffset;
+        _nextCursor = page.nextCursor;
+        _warnings = page.warnings;
+        _limited = _limited || page.limited;
         _total = page.total;
         _loading = false;
       });
@@ -114,6 +133,37 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _cancellation?.cancel();
     _query.dispose();
     super.dispose();
+  }
+
+  Future<void> _chooseMuseum() async {
+    final choice = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Search a museum'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(context, 'all'),
+            child: const Text('All museums'),
+          ),
+          for (final source in MuseumSource.values)
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(context, source.name),
+              child: Text(source.label),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    setState(
+      () => _source = MuseumSource.values
+          .where((source) => source.name == choice)
+          .firstOrNull,
+    );
+    await _search();
   }
 
   @override
@@ -142,7 +192,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text('The Metropolitan Museum of Art'),
+                    const Text('Three museums. A world of discoveries.'),
                     const SizedBox(height: 28),
                   ],
                   CupertinoSearchTextField(
@@ -154,13 +204,33 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       _search();
                     },
                   ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      CupertinoButton.tinted(
+                        onPressed: widget.initialQuery.departmentId == null
+                            ? _chooseMuseum
+                            : null,
+                        child: Text(_source?.label ?? 'All museums'),
+                      ),
+                      CupertinoButton.tinted(
+                        onPressed: () {
+                          setState(() => _titleOnly = !_titleOnly);
+                          _search();
+                        },
+                        child: Text(_titleOnly ? 'Title only' : 'All metadata'),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
                   if (!_searched)
                     const EmptyGallery(
                       icon: CupertinoIcons.search,
                       title: 'Where will curiosity take you?',
                       message:
-                          'Search The Met for an artist, a title, a culture or a material.',
+                          'Search The Met, Chicago and Cleveland for an artist, a title, a culture or a material.',
                     )
                   else if (_error != null)
                     EmptyGallery(
@@ -179,12 +249,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ),
                   if (_artworks.isNotEmpty)
                     Text(
-                      '${_artworks.length} works with open-access images · $_total museum matches',
+                      '${_artworks.length} works with open-access images · $_total matches from responding museums',
                       style: const TextStyle(fontSize: 13),
                     ),
-                  if (_total > 10000 && _artworks.isNotEmpty)
+                  if (_limited && _artworks.isNotEmpty)
                     const Text(
-                      'Showing the first 10,000 museum matches. Refine your search for more specific results.',
+                      'Some museums limit deep pagination. Refine your search for more specific results.',
+                    ),
+                  for (final warning in _warnings)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        '${warning.source.label}: ${warning.message} Other available results are shown. Load more to retry.',
+                      ),
                     ),
                 ],
               ),

@@ -82,6 +82,7 @@ class MetRepository implements ArtworkRepository {
         'hasImages': 'true',
         'offset': '$offset',
         'limit': '$limit',
+        if (query.titleOnly) 'title': 'true',
         if (query.highlights) 'isHighlight': 'true',
         if (query.departmentId != null) 'departmentId': '${query.departmentId}',
       }),
@@ -135,6 +136,7 @@ class MetRepository implements ArtworkRepository {
           ? next
           : null,
       skipped: skipped,
+      limited: total > 10000,
     );
   }
 

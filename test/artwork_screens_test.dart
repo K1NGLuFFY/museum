@@ -25,6 +25,43 @@ class ControlledRepository extends FakeArtworkRepository {
 }
 
 void main() {
+  testWidgets(
+    'museum and title filters reach the repository; partial warning remains visible',
+    (tester) async {
+      final repository = FakeArtworkRepository()
+        ..page = const ArtworkPage(
+          artworks: [],
+          total: 0,
+          nextOffset: 1,
+          warnings: [
+            SourceWarning(MuseumSource.chicago, 'Temporarily unavailable.'),
+          ],
+        );
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: ExploreScreen(
+            repository: repository,
+            initialQuery: const ArtworkQuery(text: 'water'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Other available results are shown.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('All museums'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cleveland Museum of Art'));
+      await tester.pumpAndSettle();
+      expect(repository.queries.last.source, MuseumSource.cleveland);
+      await tester.tap(find.text('All metadata'));
+      await tester.pumpAndSettle();
+      expect(repository.queries.last.titleOnly, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('Discover renders network error and recovers with retry', (
     tester,
   ) async {

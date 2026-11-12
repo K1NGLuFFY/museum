@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../core/theme/museum_theme.dart';
 import '../features/artworks/artwork.dart';
-import '../features/artworks/met_repository.dart';
+import '../features/artworks/museum_repository.dart';
 import '../features/settings/settings_controller.dart';
 import 'museum_shell.dart';
 
@@ -17,7 +17,7 @@ class MuseumApp extends StatefulWidget {
 class _MuseumAppState extends State<MuseumApp> {
   final _settings = SettingsController();
   late final ArtworkRepository _repository =
-      widget.repository ?? MetRepository();
+      widget.repository ?? MuseumRepository();
 
   @override
   void dispose() {

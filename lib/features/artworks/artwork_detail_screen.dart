@@ -10,10 +10,10 @@ class ArtworkDetailScreen extends StatelessWidget {
   const ArtworkDetailScreen({super.key, required this.artwork});
   final Artwork artwork;
 
-  Future<void> _openSource(BuildContext context) async {
+  Future<void> _openSource(BuildContext context, {Uri? url}) async {
     try {
       if (await launchUrl(
-        artwork.sourceUrl,
+        url ?? artwork.sourceUrl,
         mode: LaunchMode.externalApplication,
       )) {
         return;
@@ -25,9 +25,9 @@ class ArtworkDetailScreen extends StatelessWidget {
     await showCupertinoDialog<void>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text('Unable to open the museum website'),
-        content: const Text(
-          'Copy the source link and open it in your browser.',
+        title: const Text('Unable to open the website'),
+        content: Text(
+          'You can open this address in your browser:\n${url ?? artwork.sourceUrl}',
         ),
         actions: [
           CupertinoDialogAction(
@@ -115,6 +115,19 @@ class ArtworkDetailScreen extends StatelessWidget {
                 ),
               ),
             if (artwork.description != null) Text(artwork.description!),
+            if (artwork.descriptionAttribution != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                artwork.descriptionAttribution!,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ],
+            if (artwork.descriptionLicenseUrl != null)
+              CupertinoButton(
+                onPressed: () =>
+                    _openSource(context, url: artwork.descriptionLicenseUrl),
+                child: const Text('Read description license'),
+              ),
             const SizedBox(height: 20),
             const SectionHeading('Source & rights'),
             Text(artwork.museum),
